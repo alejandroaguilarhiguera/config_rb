@@ -1,29 +1,39 @@
 from flask import Flask, request
-from wireless import Wireless
+import subprocess
 
-wire = Wireless()
-# Funciona !!!
-#print(wire.connect(ssid='Ubee784A-2.4G',password='B5D7F6784A'))
-#print(wire.current())
-#print(wire.interfaces())
 
 app = Flask(__name__)
 
 @app.route('/wireless', methods=['POST'])
 def addWireless():
     request_data = request.get_json()
-    essid = None
+    ssid = None
     password = None
     #TODO: Intentar conectar
     if request_data:
-        if 'essid' in request_data:
-            essid = request_data['essid']
+        if 'ssid' in request_data:
+            ssid = request_data['ssid']
         if 'password' in request_data:
             password = request_data['password']
-    # wire.connect(ssid=essid, password=password)
+    
+    config_lines = [
+    '\n',
+    'network={',
+    '\tssid="{}"'.format("Ubee784A-2.4G"),
+    '\tpsk="{}"'.format("B5D7F6784A"),
+    '\tkey_mgmt=WPA-PSK',
+    '}'
+    ]
+    config = '\n'.join(config_lines)
+    with open("/etc/wpa_supplicant/wpa_supplicant.conf", "a+") as wifi:
+        wifi.write(config)
+    subprocess.run('rm /etc/dhcpcd.conf && cp /etc/dhcpcd.conf.orig.cliente_wifi /etc/dhcpcd.conf', shell=True)
+    subprocess.run('reboot')
+
     return request_data
+    #return True
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="192.168.100.1", debug=True, port=3000)
 
 
