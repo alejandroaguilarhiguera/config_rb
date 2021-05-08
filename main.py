@@ -19,8 +19,8 @@ def addWireless():
     config_lines = [
     '\n',
     'network={',
-    '\tssid="{}"'.format("Ubee784A-2.4G"),
-    '\tpsk="{}"'.format("B5D7F6784A"),
+    '\tssid="{}"'.format(ssid),
+    '\tpsk="{}"'.format(password),
     '\tkey_mgmt=WPA-PSK',
     '}'
     ]
@@ -34,6 +34,6 @@ def addWireless():
     #return True
 
 if __name__ == "__main__":
-    app.run(host="192.168.100.1", debug=True, port=3000)
+    app.run(host="0.0.0.0", debug=True, port=3000)
 
 
