@@ -1,39 +1,33 @@
-from flask import Flask, request
-import subprocess
+import firebase_admin
+from firebase_admin import credentials, firestore
+import os
+from dotenv import load_dotenv
+import json
 
+load_dotenv()
 
-app = Flask(__name__)
+#cred = credentials.Certificate("./raspi-conf-app-firebase-adminsdk-2xoap-bfe647d2df.json")
+cred = credentials.Certificate({
+    "type": os.getenv("FIRESTORE_TYPE"),
+    "project_id": os.getenv("FIRESTORE_PROJECT_ID"),
+    "private_key_id": os.getenv("FIRESTORE_PRIVATE_KEY_ID"),
+    "private_key": os.getenv("FIRESTORE_PRIVATE_KEY").replace("\\n", "\n"),
+    "client_email": os.getenv("FIRESTORE_CLIENT_EMAIL"),
+    "client_id": os.getenv("FIRESTORE_CLIENT_ID"),
+    "auth_uri": os.getenv("FIRESTORE_AUTH_URI"),
+    "token_uri": os.getenv("FIRESTORE_TOKEN_URI"),
+    "auth_provider_x509_cert_url": os.getenv("FIRESTORE_AUTH_PROVIDER_X509_CERT_URL"),
+    "client_x509_cert_url": os.getenv("FIRESTORE_X509_CERT_URL")
+})
+firebase_admin.initialize_app(cred)
 
-@app.route('/wireless', methods=['POST'])
-def addWireless():
-    request_data = request.get_json()
-    ssid = None
-    password = None
-    #TODO: Intentar conectar
-    if request_data:
-        if 'ssid' in request_data:
-            ssid = request_data['ssid']
-        if 'password' in request_data:
-            password = request_data['password']
-    
-    config_lines = [
-    '\n',
-    'network={',
-    '\tssid="{}"'.format(ssid),
-    '\tpsk="{}"'.format(password),
-    '\tkey_mgmt=WPA-PSK',
-    '}'
-    ]
-    config = '\n'.join(config_lines)
-    with open("/etc/wpa_supplicant/wpa_supplicant.conf", "a+") as wifi:
-        wifi.write(config)
-    subprocess.run('rm /etc/dhcpcd.conf && cp /etc/dhcpcd.conf.orig.cliente_wifi /etc/dhcpcd.conf', shell=True)
-    subprocess.run('reboot')
+database = firestore.client()
+config = database.collection("config")
+config_row = config.document("zAc3OziwETCJdJoVmgun").get()
 
-    return request_data
-    #return True
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", debug=True, port=3000)
-
-
+if config_row.exists:
+    print("Si existe")
+    data = config_row.to_dict()
+    print(data)
+else:
+    print("No existe")
