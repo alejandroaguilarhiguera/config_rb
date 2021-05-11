@@ -1,2 +1,8 @@
 # config_rb
-Configuración vía bluetooth para raspberry pi 4
+Configuración para raspberry pi
+
+# instalación
+pip3 install python-dotenv firebase_admin
+
+# Variables de entorno
+ENVIRONMENT=development, staging, production
