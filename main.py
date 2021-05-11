@@ -29,12 +29,16 @@ firebase_admin.initialize_app(cred)
 
 database = firestore.client()
 device = database.collection("devices")
+gpios = database.collection("gpios")
+
 device_document = device.document(uuid)
 device_row = device_document.get()
+
 if device_row.exists:
     print("Se asigna la configuración inicial")
     # TODO: Hacer la configuración inicial de un raspberry
     # TODO: Configurar entorno de pruebas 'env' = development
+
     device_document.set({
         "gpio": {
             "0": { "id": 1, "channel": 1},
@@ -44,8 +48,18 @@ if device_row.exists:
     data = device_row.to_dict()
     print(data)
 else:
+    channel1 = gpios.document()
+    channel1.create({ "channel": 1, "value": 0 })
+    channel2 = gpios.document()
+    channel2.create({ "channel": 2, "value": 0 })
     
-    device_document.create({ "name": "Inicio"})
+    device_document.create({
+        "name": "Inicio",
+        "gpio": {
+            "0": channel1.DocumentReference(),
+            "1": channel2.id,
+        }
+    })
     print("Se ha creado un documento")
 
 
