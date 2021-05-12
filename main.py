@@ -1,5 +1,5 @@
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, db
 import os
 from dotenv import load_dotenv
 import json
@@ -34,30 +34,30 @@ gpios = database.collection("gpios")
 device_document = device.document(uuid)
 device_row = device_document.get()
 
+channel1 = gpios.document()
+channel2 = gpios.document()
 if device_row.exists:
     print("Se asigna la configuración inicial")
     # TODO: Hacer la configuración inicial de un raspberry
     # TODO: Configurar entorno de pruebas 'env' = development
 
-    device_document.set({
-        "gpio": {
-            "0": { "id": 1, "channel": 1},
-            "1": { "id": 2, "channel": 2 }
-        }  
-    })
+
+    
     data = device_row.to_dict()
-    print(data)
+    data_gpios = data['gpio']
+
+    channel1 = data_gpios['0']
+    channel2 = data_gpios['1']
+    print(data_gpios)
 else:
-    channel1 = gpios.document()
     channel1.create({ "channel": 1, "value": 0 })
-    channel2 = gpios.document()
     channel2.create({ "channel": 2, "value": 0 })
     
     device_document.create({
         "name": "Inicio",
         "gpio": {
-            "0": channel1.DocumentReference(),
-            "1": channel2.id,
+            "0": gpios.document(channel1.id),
+            "1": gpios.document(channel2.id),
         }
     })
     print("Se ha creado un documento")
@@ -72,15 +72,17 @@ def on_snapshot(doc_snapshot, changes, read_time):
             print(f'Dispositívo nuevo: {change.document.id}')
         elif change.type.name == 'MODIFIED':
             print(f'Dispositívo modificado: {change.document.id}')
-            data = change.document.get("gpio")
-            print(f'Actualización gpio: {data}')
+            value = change.document.get("value")
+            channel = change.document.get("channel")
+            print(f'Actualización gpio {channel} con valor: {value}')
         elif change.type.name == 'REMOVED':
             print(f'Dispositivo eliminado: {change.document.id}')
             delete_done.set()
 
     callback_done.set()
 
-doc_watch = device_document.on_snapshot(on_snapshot)
+doc_watch = channel1.on_snapshot(on_snapshot)
+doc_watch = channel2.on_snapshot(on_snapshot)
 
 while True:
     
