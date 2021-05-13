@@ -1,5 +1,6 @@
 import firebase_admin
-from firebase_admin import credentials, firestore, db
+from firebase_admin import credentials, firestore
+import RPi.GPIO as gpio
 import os
 from dotenv import load_dotenv
 import json
@@ -12,7 +13,7 @@ uuid = os.getenv("UUID")
 env = os.getenv("ENV")
 
 callback_done = threading.Event()
-
+gpio.setmode(gpio.BCM)
 cred = credentials.Certificate({
     "type": os.getenv("FIRESTORE_TYPE"),
     "project_id": os.getenv("FIRESTORE_PROJECT_ID"),
@@ -47,11 +48,29 @@ if device_row.exists:
     data_gpios = data['gpio']
 
     channel1 = data_gpios['0']
+    gpio.setup(channel1['channel'], gpio.OUT)
+
+    if channel1['value'] == 1:
+        gpio.output(channel1['channel'], gpio.LOW)
+    else:
+        gpio.output(channel1['channel'], gpio.HIGH)
+
     channel2 = data_gpios['1']
+    gpio.setup(channel2['channel'], gpio.OUT)
+    if channel2['value'] == 1:
+        gpio.output(channel2['channel'], gpio.LOW)
+    else:
+        gpio.output(channel2['channel'], gpio.HIGH)
+
+    
     print(data_gpios)
 else:
-    channel1.create({ "channel": 1, "value": 0 })
-    channel2.create({ "channel": 2, "value": 0 })
+    channel1.create({ "channel": 23, "value": 0 })
+    channel2.create({ "channel": 24, "value": 0 })
+    gpio.setup(23, gpio.OUT)
+    gpio.setup(24, gpio.OUT)
+    gpio.output(channel1, gpio.HIGH)
+    gpio.output(channel2, gpio.HIGH)
     
     device_document.create({
         "name": "Inicio",
@@ -74,6 +93,10 @@ def on_snapshot(doc_snapshot, changes, read_time):
             print(f'Dispositívo modificado: {change.document.id}')
             value = change.document.get("value")
             channel = change.document.get("channel")
+            if value == 1:
+                gpio.output(channel, gpio.LOW)
+            else:
+                gpio.output(channel, gpio.HIGH)
             print(f'Actualización gpio {channel} con valor: {value}')
         elif change.type.name == 'REMOVED':
             print(f'Dispositivo eliminado: {change.document.id}')
@@ -85,7 +108,12 @@ doc_watch = channel1.on_snapshot(on_snapshot)
 doc_watch = channel2.on_snapshot(on_snapshot)
 
 while True:
-    
-    time.sleep(1)
+    try:
+
+        time.sleep(1)
+    except KeyboardInterrupt:
+        print('keyboard interript')
+    finally:
+        gpio.cleanup()
     # TODO: No puede estar todo el tiempo a la escucha porque es muy pesado
     #doc_watch.unsubscribe()
