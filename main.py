@@ -41,26 +41,27 @@ if device_row.exists:
     print("Se asigna la configuración inicial")
     # TODO: Hacer la configuración inicial de un raspberry
     # TODO: Configurar entorno de pruebas 'env' = development
-
-
-    
     data = device_row.to_dict()
     data_gpios = data['gpio']
 
     channel1 = data_gpios['0']
-    gpio.setup(channel1['channel'], gpio.OUT)
-
-    if channel1['value'] == 1:
-        gpio.output(channel1['channel'], gpio.LOW)
+    channel_row1 = channel1.get()
+    channel_data1 = channel_row1.to_dict()
+    gpio.setup(channel_data1['channel'], gpio.OUT)
+    if channel_data1['value'] == 1:
+        gpio.output(channel_data1['channel'], gpio.LOW)
     else:
-        gpio.output(channel1['channel'], gpio.HIGH)
+        gpio.output(channel_data1['channel'], gpio.HIGH)
 
     channel2 = data_gpios['1']
-    gpio.setup(channel2['channel'], gpio.OUT)
-    if channel2['value'] == 1:
-        gpio.output(channel2['channel'], gpio.LOW)
+    channel_row2 = channel2.get()
+    channel_data2 = channel_row1.to_dict()
+    
+    gpio.setup(channel_data2['channel'], gpio.OUT)
+    if channel_data2['value'] == 1:
+        gpio.output(channel_data2['channel'], gpio.LOW)
     else:
-        gpio.output(channel2['channel'], gpio.HIGH)
+        gpio.output(channel_data2['channel'], gpio.HIGH)
 
     
     print(data_gpios)
@@ -69,8 +70,8 @@ else:
     channel2.create({ "channel": 24, "value": 0 })
     gpio.setup(23, gpio.OUT)
     gpio.setup(24, gpio.OUT)
-    gpio.output(channel1, gpio.HIGH)
-    gpio.output(channel2, gpio.HIGH)
+    gpio.output(23, gpio.HIGH)
+    gpio.output(24, gpio.HIGH)
     
     device_document.create({
         "name": "Inicio",
@@ -93,6 +94,8 @@ def on_snapshot(doc_snapshot, changes, read_time):
             print(f'Dispositívo modificado: {change.document.id}')
             value = change.document.get("value")
             channel = change.document.get("channel")
+            #FIXME: Se tiene que tener un mejor lugar para colocar esto
+            gpio.setup(channel,gpio.OUT)
             if value == 1:
                 gpio.output(channel, gpio.LOW)
             else:
@@ -104,16 +107,16 @@ def on_snapshot(doc_snapshot, changes, read_time):
 
     callback_done.set()
 
-doc_watch = channel1.on_snapshot(on_snapshot)
-doc_watch = channel2.on_snapshot(on_snapshot)
+doc_watch1 = channel1.on_snapshot(on_snapshot)
+doc_watch2 = channel2.on_snapshot(on_snapshot)
 
-while True:
-    try:
-
+try:
+    while True:
         time.sleep(1)
-    except KeyboardInterrupt:
-        print('keyboard interript')
-    finally:
-        gpio.cleanup()
+except KeyboardInterrupt:
+    print('keyboard interript')
+finally:
+    gpio.cleanup()
     # TODO: No puede estar todo el tiempo a la escucha porque es muy pesado
-    #doc_watch.unsubscribe()
+    #doc_watch1.unsubscribe()
+    #doc_watch2.unsubscribe()
